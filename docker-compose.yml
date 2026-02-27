@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: finanzas_backend
+    restart: unless-stopped
+    volumes:
+      - db_data:/data
+    environment:
+      - DATABASE_URL=sqlite:////data/finanzas.db
+      - SECRET_KEY=${SECRET_KEY:-super-secret-jwt-key-change-in-production}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme}
+      - API_KEY=${API_KEY:-}
+    networks:
+      - finanzas_net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build: ./frontend
+    container_name: finanzas_frontend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - finanzas_net
+
+volumes:
+  db_data:
+    driver: local
+
+networks:
+  finanzas_net:
+    driver: bridge
