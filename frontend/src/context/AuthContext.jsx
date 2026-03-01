@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { login as apiLogin, getMe } from '../api'
+import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
@@ -8,28 +8,51 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) { setLoading(false); return }
-    getMe()
-      .then(setUser)
-      .catch(() => localStorage.removeItem('token'))
-      .finally(() => setLoading(false))
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription?.unsubscribe()
   }, [])
 
-  const login = useCallback(async (username, password) => {
-    const { access_token } = await apiLogin(username, password)
-    localStorage.setItem('token', access_token)
-    const me = await getMe()
-    setUser(me)
+  const login = useCallback(async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    
+    if (error) throw error
+    setUser(data.user)
+    return data
   }, [])
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token')
+  const signup = useCallback(async (email, password) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+    
+    if (error) throw error
+    setUser(data.user)
+    return data
+  }, [])
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut()
     setUser(null)
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   )

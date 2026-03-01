@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
-  const { login } = useAuth()
-  const [form, setForm] = useState({ username: '', password: '' })
+  const { login, signup } = useAuth()
+  const navigate = useNavigate()
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -12,9 +15,14 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await login(form.username, form.password)
-    } catch {
-      setError('Usuario o contraseña incorrectos')
+      if (isSignUp) {
+        await signup(form.email, form.password)
+      } else {
+        await login(form.email, form.password)
+      }
+      navigate('/')
+    } catch (err) {
+      setError(err.message || 'Error al autenticarse')
     } finally {
       setLoading(false)
     }
@@ -26,32 +34,35 @@ export default function Login() {
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">💰</div>
           <h1 className="text-2xl font-bold text-white">Finanzas Personales</h1>
-          <p className="text-slate-400 mt-1 text-sm">Ingresá con tu cuenta</p>
+          <p className="text-slate-400 mt-1 text-sm">
+            {isSignUp ? 'Crea una nueva cuenta' : 'Ingresá con tu cuenta'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="card space-y-4">
           <div>
-            <label className="label">Usuario</label>
+            <label className="label">Email</label>
             <input
-              type="text"
-              autoComplete="username"
+              type="email"
+              autoComplete="email"
               required
-              value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="input"
-              placeholder="admin"
+              placeholder="tu@email.com"
             />
           </div>
           <div>
             <label className="label">Contraseña</label>
             <input
               type="password"
-              autoComplete="current-password"
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
               required
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="input"
               placeholder="••••••••"
+              minLength={6}
             />
           </div>
 
@@ -62,7 +73,18 @@ export default function Login() {
           )}
 
           <button type="submit" disabled={loading} className="btn-primary w-full py-3">
-            {loading ? 'Ingresando...' : 'Ingresar'}
+            {loading ? (isSignUp ? 'Creando cuenta...' : 'Ingresando...') : (isSignUp ? 'Crear cuenta' : 'Ingresar')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsSignUp(!isSignUp)
+              setError('')
+            }}
+            className="w-full text-sm text-slate-400 hover:text-slate-300 py-2"
+          >
+            {isSignUp ? '¿Ya tienes cuenta? Ingresá aquí' : '¿Sin cuenta? Registrate aquí'}
           </button>
         </form>
       </div>
