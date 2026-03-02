@@ -8,10 +8,6 @@
     "build": "cd frontend && npm run build",
     "preview": "cd frontend && npm run preview"
   },
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.4",
     "vite": "^7.3.1"
